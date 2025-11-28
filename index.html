@@ -2,63 +2,124 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>Bird Fly Animation</title>
+  <title>Flappy Bird with Flying Object</title>
+  <style>
+    canvas {
+      border: 1px solid black;
+    }
+  </style>
 </head>
 <body>
-  <canvas id="canvas" width="600" height="400" style="border:1px solid #000;"></canvas>
-  <script>
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
+<canvas id="gameCanvas" width="600" height="400"></canvas>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
 
-    // Replace these URLs with your own image and sound files
-    const birdImageUrl = 'your-bird-image.png'; // Your existing bird PNG
-    const flySoundUrl = 'your-fly-sound.mp3'; // Your existing sound file
+// Your Flappy Bird game variables
+let birdY = 200;
+let birdVelocity = 0;
+const gravity = 0.6;
+const birdSize = 40;
 
-    const birdImg = new Image();
-    birdImg.src = birdImageUrl;
+// Load flying object sprite
+const flyingImage = new Image();
+flyingImage.src = 'your-flying.png'; // Replace with your sprite image path
 
-    const flySound = new Audio(flySoundUrl);
+// Array to hold flying objects
+const flyingObjects = [];
 
-    let bird = {
-      x: 50,               // Starting position
-      y: 150,
-      width: 60,
-      height: 40,
-    };
+// Utility to get random number
+function getRandom(min, max) {
+  return Math.random() * (max - min) + min;
+}
 
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
+// Function to spawn flying object
+function spawnFlyingObject() {
+  const startSide = Math.random() < 0.5 ? 'left' : 'right';
+  const entryY = getRandom(50, canvas.height - 50);
+  const exitY = getRandom(50, canvas.height - 50);
+  const duration = 2000; // 2 seconds
+
+  const sprite = {
+    startTime: performance.now(),
+    duration: duration,
+    startX: startSide === 'left' ? -50 : canvas.width + 50,
+    startY: entryY,
+    endX: startSide === 'left' ? canvas.width + 50 : -50,
+    endY: exitY,
+    currentX: 0,
+    currentY: 0,
+  };
+
+  flyingObjects.push(sprite);
+}
+
+// Example: spawn a flying object every 10 seconds
+setInterval(spawnFlyingObject, 10000);
+
+// Main update function
+function update() {
+  // Update bird physics
+  birdVelocity += gravity;
+  birdY += birdVelocity;
+
+  // Keep bird within bounds
+  if (birdY + birdSize > canvas.height) {
+    birdY = canvas.height - birdSize;
+    birdVelocity = 0;
+  }
+  if (birdY < 0) {
+    birdY = 0;
+    birdVelocity = 0;
+  }
+
+  // Update flying objects
+  const now = performance.now();
+  for (let i = flyingObjects.length - 1; i >= 0; i--) {
+    const obj = flyingObjects[i];
+    const elapsed = now - obj.startTime;
+    if (elapsed > obj.duration) {
+      flyingObjects.splice(i, 1);
+      continue;
     }
+    const t = elapsed / obj.duration;
+    obj.currentX = obj.startX + (obj.endX - obj.startX) * t;
+    obj.currentY = obj.startY + (obj.endY - obj.startY) * t;
+  }
+}
 
-    function flyAcrossScreen() {
-      flySound.play();
+// Main draw function
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const startX = bird.x;
-      const endX = 400; // target position
-      const duration = 2000; // 2 seconds in milliseconds
-      const startTime = performance.now();
+  // Draw flying objects
+  for (const obj of flyingObjects) {
+    ctx.drawImage(flyingImage, obj.currentX, obj.currentY);
+  }
 
-      function animate(currentTime) {
-        const elapsed = currentTime - startTime;
-        if (elapsed > duration) {
-          bird.x = endX;
-          draw();
-          return; // End animation after 2 seconds
-        }
-        // Linear interpolation of position
-        bird.x = startX + ((endX - startX) * (elapsed / duration));
-        draw();
-        requestAnimationFrame(animate);
-      }
+  // Draw your bird (simple rectangle for example)
+  ctx.fillStyle = 'yellow';
+  ctx.fillRect(50, birdY, birdSize, birdSize);
+}
 
-      requestAnimationFrame(animate);
-    }
+// Main game loop
+function gameLoop() {
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
 
-    // Wait for the image to load before starting
-    birdImg.onload = () => {
-      flyAcrossScreen();
-    };
-  </script>
+// Start game once image loads
+flyingImage.onload = () => {
+  gameLoop();
+}
+
+// Add event listener for flap
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' || e.code === 'ArrowUp') {
+    birdVelocity = -10; // Flap
+  }
+});
+</script>
 </body>
 </html>
