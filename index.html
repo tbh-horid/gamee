@@ -2,227 +2,54 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>index</title>
-  <style>
-    body {
-      margin: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background: #70c5ce;
-      font-family: sans-serif;
-      overflow: hidden;
-      position: relative;
-    }
-    canvas {
-      background: #4ec0ca;
-      border: 2px solid #000;
-      width: 90vw; /* Make canvas responsive */
-      height: auto;
-      max-width: 480px;
-      max-height: 1200px;
-      display: block;
-    }
-    #gameoverGif {
-      position: absolute;
-      display: none;
-      z-index: 10;
-      left: 50%;
-      top: 60%;
-      transform: translate(-50%, -50%);
-    }
-  </style>
+  <title>Fly Bird Animation</title>
 </head>
 <body>
-  <canvas id="gameCanvas"></canvas>
-  <img id="gameoverGif" src="gameover.gif" alt="Game Over GIF" />
-
+  <canvas id="canvas" width="600" height="400" style="border:1px solid #000;"></canvas>
   <script>
-    // Images & Sound
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
     const birdImg = new Image();
-    birdImg.src = 'bird.png'; // ensure this exists
-    const loseSound = new Audio('lose.mp3'); // ensure this exists
+    birdImg.src = 'bird.png'; // replace with your image path
 
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-    const gifEl = document.getElementById("gameoverGif");
+    const flySound = new Audio('fly.mp3'); // replace with your sound path
 
-    // Function to resize canvas based on window
-    function resizeCanvas() {
-      const vw = Math.min(window.innerWidth * 0.9, 480); // max 480px
-      const vh = Math.min(window.innerHeight * 0.9, 1200); // max 1200px
-      canvas.width = vw;
-      canvas.height = vh;
-    }
-
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas(); // initial resize
-
-    // Adjust game parameters based on canvas size
-    let bird = { 
-      x: 0.2, // relative position
-      y: 0.5,
-      width: 0.18, // relative sizes
-      height: 0.12,
-      gravity: 0.005,
-      lift: -0.015,
-      velocity: 0 
+    let bird = {
+      x: 50,
+      y: 200,
+      width: 50,
+      height: 50,
+      speedX: 200 / 2, // move across in 2 seconds
     };
 
-    let pipes = [];
-    let frame = 0;
-    let gameOver = false;
-    let score = 0;
-    let soundPlayed = false;
-
-    // Convert relative positions to absolute pixels
-    function getX(relX) {
-      return relX * canvas.width;
-    }
-    function getY(relY) {
-      return relY * canvas.height;
-    }
-    function getWidth(relW) {
-      return relW * canvas.width;
-    }
-    function getHeight(relH) {
-      return relH * canvas.height;
-    }
-
-    // Input: keyboard + touch
-    document.addEventListener("keydown", handleInput);
-    document.addEventListener("touchstart", handleInput);
-
-    function handleInput() {
-      if (!gameOver) {
-        bird.velocity = bird.lift;
-      } else {
-        restart();
-      }
-    }
-
-    function restart() {
-      loseSound.pause();
-      loseSound.currentTime = 0;
-      soundPlayed = false;
-      gifEl.style.display = "none";
-      gifEl.src = "gameover.gif";
-
-      // reset game state
-      bird.y = 0.5;
-      bird.velocity = 0;
-      pipes = [];
-      frame = 0;
-      score = 0;
-      gameOver = false;
-    }
-
-    function drawBird() {
-      ctx.drawImage(birdImg, getX(bird.x), getY(bird.y), getWidth(bird.width), getHeight(bird.height));
-    }
-
-    function drawPipes() {
-      ctx.fillStyle = "green";
-      pipes.forEach(pipe => {
-        ctx.fillRect(pipe.x, 0, pipe.width, pipe.top);
-        ctx.fillRect(pipe.x, canvas.height - pipe.bottom, pipe.width, pipe.bottom);
-      });
-    }
-
-    function updateBird() {
-      bird.velocity += bird.gravity;
-      bird.y += bird.velocity;
-
-      // hit top/bottom of screen
-      if (bird.y + bird.height > 1 || bird.y < 0) {
-        if (!gameOver) {
-          gameOver = true;
-          if (!soundPlayed) {
-            loseSound.play();
-            soundPlayed = true;
-          }
-        }
-      }
-    }
-
-    function updatePipes() {
-      // controls distance between columns
-      if (frame % Math.floor(canvas.width/20) === 0) {
-        let top = Math.random() * 0.4 + 0.1; // relative
-        let gap = 0.53; // smaller gap = more challenging
-        pipes.push({
-          x: 1,
-          width: 0.125,
-          top: top,
-          bottom: 1 - (top + gap)
-        });
-      }
-
-      pipes.forEach(pipe => {
-        pipe.x -= 0.003; // relative movement
-
-        if (pipe.x + pipe.width < 0) {
-          pipes.shift();
-          score++;
-        }
-
-        // collision with pipes
-        const birdX = getX(bird.x);
-        const birdY = getY(bird.y);
-        const birdW = getWidth(bird.width);
-        const birdH = getHeight(bird.height);
-
-        if (
-          birdX < pipe.x + pipe.width * canvas.width &&
-          birdX + birdW > pipe.x * canvas.width &&
-          (birdY < pipe.top * canvas.height || birdY + birdH > (1 - pipe.bottom) * canvas.height)
-        ) {
-          if (!gameOver) {
-            gameOver = true;
-            if (!soundPlayed) {
-              loseSound.play();
-              soundPlayed = true;
-            }
-          }
-        }
-      });
-    }
-
-    function drawScore() {
-      ctx.fillStyle = "white";
-      ctx.font = Math.min(canvas.width, canvas.height) * 0.08 + "px Arial";
-      ctx.fillText(score, 20, 40);
-    }
-
-    function loop() {
+    function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      if (!gameOver) {
-        updateBird();
-        updatePipes();
-      }
-
-      drawBird();
-      drawPipes();
-      drawScore();
-
-      if (gameOver) {
-        ctx.fillStyle = "black";
-        ctx.font = Math.min(canvas.width, canvas.height) * 0.1 + "px Arial";
-        ctx.fillText("Game Over", canvas.width/2 - 100, canvas.height/2);
-        // Show GIF (full width)
-        const gifWidth = canvas.width;
-        gifEl.style.width = gifWidth + 'px';
-        gifEl.style.display = 'block';
-      }
-
-      frame++;
-      requestAnimationFrame(loop);
+      ctx.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
     }
 
-    loop();
+    function animate() {
+      const startTime = performance.now();
+      flySound.play();
+
+      function update(currentTime) {
+        const elapsed = (currentTime - startTime) / 1000; // in seconds
+        if (elapsed > 2) {
+          // Stop after 2 seconds
+          return;
+        }
+        // Move bird across in 2 seconds
+        bird.x = 50 + (200 * elapsed); // move from x=50 to x=250
+        draw();
+        requestAnimationFrame(update);
+      }
+      requestAnimationFrame(update);
+    }
+
+    // Wait for image to load before starting
+    birdImg.onload = () => {
+      animate();
+    };
   </script>
 </body>
 </html>
