@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>Fly Bird Animation</title>
+  <title>Bird Fly Animation</title>
 </head>
 <body>
   <canvas id="canvas" width="600" height="400" style="border:1px solid #000;"></canvas>
@@ -10,17 +10,20 @@
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
 
-    const birdImg = new Image();
-    birdImg.src = 'bird.png'; // replace with your image path
+    // Replace these URLs with your own image and sound files
+    const birdImageUrl = 'your-bird-image.png'; // Your existing bird PNG
+    const flySoundUrl = 'your-fly-sound.mp3'; // Your existing sound file
 
-    const flySound = new Audio('fly.mp3'); // replace with your sound path
+    const birdImg = new Image();
+    birdImg.src = birdImageUrl;
+
+    const flySound = new Audio(flySoundUrl);
 
     let bird = {
-      x: 50,
-      y: 200,
-      width: 50,
-      height: 50,
-      speedX: 200 / 2, // move across in 2 seconds
+      x: 50,               // Starting position
+      y: 150,
+      width: 60,
+      height: 40,
     };
 
     function draw() {
@@ -28,27 +31,33 @@
       ctx.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
     }
 
-    function animate() {
-      const startTime = performance.now();
+    function flyAcrossScreen() {
       flySound.play();
 
-      function update(currentTime) {
-        const elapsed = (currentTime - startTime) / 1000; // in seconds
-        if (elapsed > 2) {
-          // Stop after 2 seconds
-          return;
+      const startX = bird.x;
+      const endX = 400; // target position
+      const duration = 2000; // 2 seconds in milliseconds
+      const startTime = performance.now();
+
+      function animate(currentTime) {
+        const elapsed = currentTime - startTime;
+        if (elapsed > duration) {
+          bird.x = endX;
+          draw();
+          return; // End animation after 2 seconds
         }
-        // Move bird across in 2 seconds
-        bird.x = 50 + (200 * elapsed); // move from x=50 to x=250
+        // Linear interpolation of position
+        bird.x = startX + ((endX - startX) * (elapsed / duration));
         draw();
-        requestAnimationFrame(update);
+        requestAnimationFrame(animate);
       }
-      requestAnimationFrame(update);
+
+      requestAnimationFrame(animate);
     }
 
-    // Wait for image to load before starting
+    // Wait for the image to load before starting
     birdImg.onload = () => {
-      animate();
+      flyAcrossScreen();
     };
   </script>
 </body>
